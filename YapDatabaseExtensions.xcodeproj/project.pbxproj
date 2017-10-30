@@ -270,11 +270,11 @@
 				TargetAttributes = {
 					656BAE6F1D9A4CCC008279EE = {
 						CreatedOnToolsVersion = 7.3.1;
-						LastSwiftMigration = 0820;
+						LastSwiftMigration = 0900;
 					};
 					656BAE791D9A4CCC008279EE = {
 						CreatedOnToolsVersion = 7.3.1;
-						LastSwiftMigration = 0820;
+						LastSwiftMigration = 0900;
 					};
 				};
 			};
@@ -508,7 +508,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SKIP_INSTALL = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 3.0;
+				SWIFT_VERSION = 4.0;
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
 			};
@@ -554,7 +554,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SKIP_INSTALL = YES;
-				SWIFT_VERSION = 3.0;
+				SWIFT_VERSION = 4.0;
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
 			};
@@ -604,7 +604,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
-				SWIFT_VERSION = 3.0;
+				SWIFT_VERSION = 4.0;
 			};
 			name = Debug;
 		};
@@ -644,7 +644,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = macosx;
-				SWIFT_VERSION = 3.0;
+				SWIFT_VERSION = 4.0;
 			};
 			name = Release;
 		};

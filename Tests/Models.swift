@@ -52,7 +52,7 @@ public struct Inventory: Identifiable, Equatable {
 
 public class NamedEntity: NSObject, NSCoding {
 
-    public let identifier: Identifier
+    @objc public let identifier: Identifier
     public let name: String
 
     public init(id: String, name n: String) {
