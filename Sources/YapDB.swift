@@ -7,6 +7,7 @@ import YapDatabase.YapDatabaseView
 import YapDatabase.YapDatabaseFilteredView
 import YapDatabase.YapDatabaseFullTextSearch
 import YapDatabase.YapDatabaseSecondaryIndex
+import YapDatabase.YapDatabaseAutoView
 
 protocol YapDatabaseViewProducer {
     func createDatabaseView() -> YapDatabaseView
@@ -14,13 +15,13 @@ protocol YapDatabaseViewProducer {
 
 protocol YapDatabaseExtensionRegistrar {
     func isRegisteredInDatabase(_ database: YapDatabase) -> Bool
-    func registerInDatabase(_ database: YapDatabase, withConnection: YapDatabaseConnection?)
+    func registerInDatabase(_ database: YapDatabase, withConfig config: YapDatabaseConnectionConfig?)
 }
 
 extension YapDB {
 
     /**
-    A Swift enum wraps YapDatabaseView wrappers. It can be thought of being a Fetch
+    A Swift enum wraps YapDatabaseAutoView wrappers. It can be thought of being a Fetch
     Request type, as it defines what will be fetched out of the database. The Fetch
     instance should be used by injecting it into a FetchConfiguration.
     */
@@ -63,20 +64,20 @@ extension YapDB {
         Utility function can register the extensions in YapDatabase, optionally using the supplied connection.
 
         - parameter database: a YapDatabase instance
-        - parameter connection: an optional YapDatabaseConnection, defaults to .None
+        - parameter config: an optional YapDatabaseConnectionConfig, defaults to .none
         */
-        public func registerInDatabase(_ database: YapDatabase, withConnection connection: YapDatabaseConnection? = .none) {
-            registrar.registerInDatabase(database, withConnection: connection)
+        public func registerInDatabase(_ database: YapDatabase, withConfig config: YapDatabaseConnectionConfig? = .none) {
+            registrar.registerInDatabase(database, withConfig: config)
         }
 
         /**
         Creates the YapDatabaseViewMappings object. Ensures that any database extensions are registered before returning.
 
         - parameter database: a YapDatabase instance
-        - parameter connection: an optional YapDatabaseConnection, defaults to .None
+        - parameter config: an optional YapDatabaseConnectionConfig, defaults to .none
         */
-        public func createViewMappings(_ mappings: Mappings, inDatabase database: YapDatabase, withConnection connection: YapDatabaseConnection? = .none) -> YapDatabaseViewMappings {
-            registerInDatabase(database, withConnection: connection)
+        public func createViewMappings(_ mappings: Mappings, inDatabase database: YapDatabase, withConfig config: YapDatabaseConnectionConfig? = .none) -> YapDatabaseViewMappings {
+            registerInDatabase(database, withConfig: config)
             return mappings.createMappingsWithViewName(name)
         }
     }
@@ -109,7 +110,7 @@ extension YapDB {
     }
 
     /**
-    The base class for other YapDatabaseView wrapper types.
+    The base class for other YapDatabaseAutoView wrapper types.
     */
     open class BaseView: BaseExtension {
 
@@ -127,7 +128,7 @@ extension YapDB {
 extension YapDB {
 
     /**
-    A wrapper around YapDatabaseView. It can be constructed with a name, which is
+    A wrapper around YapDatabaseAutoView. It can be constructed with a name, which is
     the name the extension is registered under, a grouping enum type and a sorting enum type.
     */
     open class View: BaseView, YapDatabaseViewProducer, YapDatabaseExtensionRegistrar {
@@ -220,13 +221,13 @@ extension YapDB {
         }
 
         func createDatabaseView() -> YapDatabaseView {
-            return YapDatabaseView(grouping: grouping.object(withOptions: groupingOptions), sorting: sorting.object(withOptions: sortingOptions), versionTag: version, options: options)
+            return YapDatabaseAutoView(grouping: grouping.object(withOptions: groupingOptions), sorting: sorting.object(withOptions: sortingOptions), versionTag: version, options: options)
         }
 
-        func registerInDatabase(_ database: YapDatabase, withConnection connection: YapDatabaseConnection? = .none) {
+        func registerInDatabase(_ database: YapDatabase, withConfig config: YapDatabaseConnectionConfig? = .none) {
             if !isRegisteredInDatabase(database) {
-                if let connection = connection {
-                    database.register(createDatabaseView(), withName: name, connection: connection)
+                if let config = config {
+                    database.register(createDatabaseView(), withName: name, config: config)
                 }
                 else {
                     database.register(createDatabaseView(), withName: name)
@@ -302,11 +303,11 @@ extension YapDB {
             return YapDatabaseFilteredView(parentViewName: parent.name, filtering: filtering.object(withOptions: filteringOptions), versionTag: version, options: options)
         }
 
-        func registerInDatabase(_ database: YapDatabase, withConnection connection: YapDatabaseConnection? = .none) {
+        func registerInDatabase(_ database: YapDatabase, withConfig config: YapDatabaseConnectionConfig? = .none) {
             if !isRegisteredInDatabase(database) {
-                parent.registerInDatabase(database, withConnection: connection)
-                if let connection = connection {
-                    database.register(createDatabaseView(), withName: name, connection: connection)
+                parent.registerInDatabase(database, withConfig: config)
+                if let config = config {
+                    database.register(createDatabaseView(), withName: name, config: config)
                 }
                 else {
                     database.register(createDatabaseView(), withName: name)
@@ -376,12 +377,12 @@ extension YapDB {
             return YapDatabaseSearchResultsView(fullTextSearchName: searchName, parentViewName: parent.name, versionTag: version, options: .none)
         }
 
-        func registerInDatabase(_ database: YapDatabase, withConnection connection: YapDatabaseConnection? = .none) {
+        func registerInDatabase(_ database: YapDatabase, withConfig config: YapDatabaseConnectionConfig? = .none) {
 
             if (database.registeredExtension(searchName) as? YapDatabaseFullTextSearch) == .none {
                 let fullTextSearch = YapDatabaseFullTextSearch(columnNames: columnNames, options: nil, handler: handler.object, versionTag: version)
-                if let connection = connection {
-                    database.register(fullTextSearch, withName: searchName, connection: connection)
+                if let config = config {
+                    database.register(fullTextSearch, withName: searchName, config: config)
                 }
                 else {
                     database.register(fullTextSearch, withName: searchName)
@@ -389,9 +390,9 @@ extension YapDB {
             }
 
             if !isRegisteredInDatabase(database) {
-                parent.registerInDatabase(database, withConnection: connection)
-                if let connection = connection {
-                    database.register(createDatabaseView(), withName: name, connection: connection)
+                parent.registerInDatabase(database, withConfig: config)
+                if let config = config {
+                    database.register(createDatabaseView(), withName: name, config: config)
                 }
                 else {
                     database.register(createDatabaseView(), withName: name)
@@ -454,11 +455,11 @@ extension YapDB {
             return setup
         }
 
-        open func registerInDatabase(_ database: YapDatabase, withConnection connection: YapDatabaseConnection?) {
+        func registerInDatabase(_ database: YapDatabase, withConfig config: YapDatabaseConnectionConfig? = .none) {
             if !isRegisteredInDatabase(database) {
                 let secondaryIndex = YapDatabaseSecondaryIndex(setup: setup(), handler: handler.object, versionTag: version, options: options)
-                if let connection = connection {
-                    database.register(secondaryIndex, withName: name, connection: connection)
+                if let config = config {
+                    database.register(secondaryIndex, withName: name, config: config)
                 }
                 else {
                     database.register(secondaryIndex, withName: name)
@@ -545,8 +546,8 @@ extension YapDB {
             self.init(fetch: .search(search))
         }
 
-        public func createMappingsRegisteredInDatabase(_ database: YapDatabase, withConnection connection: YapDatabaseConnection? = .none) -> YapDatabaseViewMappings {
-            let databaseViewMappings = fetch.createViewMappings(mappings, inDatabase: database, withConnection: connection)
+        public func createMappingsRegisteredInDatabase(_ database: YapDatabase, withConfig config: YapDatabaseConnectionConfig? = .none) -> YapDatabaseViewMappings {
+            let databaseViewMappings = fetch.createViewMappings(mappings, inDatabase: database, withConfig: config)
             block?(databaseViewMappings)
             return databaseViewMappings
         }
