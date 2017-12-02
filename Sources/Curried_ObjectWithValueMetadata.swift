@@ -7,7 +7,6 @@
 //
 
 import Foundation
-import ValueCoding
 
 // MARK: - Persistable
 
@@ -24,9 +23,7 @@ extension Persistable where
     public static func readWithMetadataAtIndex<
         ReadTransaction, Metadata>(_ index: YapDB.Index) -> (ReadTransaction) -> YapItem<Self, Metadata>? where
         ReadTransaction: ReadTransactionType,
-        Metadata: ValueCoding,
-        Metadata.Coder: NSCoding,
-        Metadata.Coder.Value == Metadata {
+        Metadata: Decodable {
             return { $0.readWithMetadataAtIndex(index) }
     }
 
@@ -42,9 +39,7 @@ extension Persistable where
         Indexes: Sequence,
         Indexes.Iterator.Element == YapDB.Index,
         ReadTransaction: ReadTransactionType,
-        Metadata: ValueCoding,
-        Metadata.Coder: NSCoding,
-        Metadata.Coder.Value == Metadata {
+        Metadata: Decodable {
             return { $0.readWithMetadataAtIndexes(indexes) }
     }
 
@@ -58,9 +53,7 @@ extension Persistable where
     public static func readWithMetadataByKey<
         ReadTransaction, Metadata>(_ key: String) -> (ReadTransaction) -> YapItem<Self, Metadata>? where
         ReadTransaction: ReadTransactionType,
-        Metadata: ValueCoding,
-        Metadata.Coder: NSCoding,
-        Metadata.Coder.Value == Metadata {
+        Metadata: Decodable {
             return { $0.readWithMetadataByKey(key) }
     }
 
@@ -76,9 +69,7 @@ extension Persistable where
         Keys: Sequence,
         Keys.Iterator.Element == String,
         ReadTransaction: ReadTransactionType,
-        Metadata: ValueCoding,
-        Metadata.Coder: NSCoding,
-        Metadata.Coder.Value == Metadata {
+        Metadata: Decodable {
             return  { $0.readWithMetadataAtIndexes(Self.indexesWithKeys(keys)) }
     }
 
@@ -92,9 +83,7 @@ extension Persistable where
     public func writeWithMetadata<
         WriteTransaction, Metadata>(_ metadata: Metadata? = nil) -> (WriteTransaction) -> YapItem<Self, Metadata> where
         WriteTransaction: WriteTransactionType,
-        Metadata: ValueCoding,
-        Metadata.Coder: NSCoding,
-        Metadata.Coder.Value == Metadata {
+        Metadata: Encodable {
         return { $0.writeWithMetadata(YapItem(self, metadata)) }
     }
 }

@@ -37,7 +37,9 @@ class YapDatabaseExtensionsTests: XCTestCase {
 
     func test_YapDBIndex_EncodingAndDecoding() {
         let index = YapDB.Index(collection: "Foo", key: "Bar")
-        let _index = YapDB.Index.decode(index.encoded)
+        let archivedIndex = try? index.jsonObject()
+        XCTAssertNotNil(archivedIndex)
+        let _index = try? YapDB.Index(from: archivedIndex!)
         XCTAssertTrue(_index != nil, "Unarchived archive should not be nil")
         XCTAssertEqual(index, _index!, "Unarchived archive should equal the original.")
     }
@@ -281,10 +283,13 @@ class ValueCodingTests: XCTestCase {
     func test__index_is_codable() {
         let db = YapDB.testDatabase()
         db.makeNewConnection().readWrite { transaction in
-            transaction.setObject(self.index.encoded, forKey: "test-index", inCollection: "test-index-collection")
+            transaction.setObject(try? self.index.jsonObject(), forKey: "test-index", inCollection: "test-index-collection")
         }
-
-        let unarchived = YapDB.Index.decode(db.makeNewConnection().read { $0.object(forKey: "test-index", inCollection: "test-index-collection") })
+        
+        let jsonObject = db.makeNewConnection().read({ $0.object(forKey: "test-index", inCollection: "test-index-collection") })
+        XCTAssertNotNil(jsonObject)
+        
+        let unarchived = try? YapDB.Index(from: jsonObject!)
         XCTAssertNotNil(unarchived)
         XCTAssertEqual(unarchived!, index)
     }

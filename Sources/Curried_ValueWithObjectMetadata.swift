@@ -7,14 +7,11 @@
 //
 
 import Foundation
-import ValueCoding
 
 // MARK: - Persistable
 
 extension Persistable where
-    Self: ValueCoding,
-    Self.Coder: NSCoding,
-    Self.Coder.Value == Self {
+    Self: Codable {
 
     /**
     Returns a closure which, given a read transaction will return

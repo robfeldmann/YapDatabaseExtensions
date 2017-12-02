@@ -7,14 +7,11 @@
 //
 
 import Foundation
-import ValueCoding
 
 // MARK: - Persistable
 
 extension Persistable where
-    Self: ValueCoding,
-    Self.Coder: NSCoding,
-    Self.Coder.Value == Self {
+    Self: Encodable {
 
     // Writing
 
@@ -61,9 +58,7 @@ extension Persistable where
 
 extension Sequence where
     Iterator.Element: Persistable,
-    Iterator.Element: ValueCoding,
-    Iterator.Element.Coder: NSCoding,
-    Iterator.Element.Coder.Value == Iterator.Element {
+    Iterator.Element: Encodable {
 
     /**
     Write the items using an existing transaction.
@@ -109,10 +104,8 @@ extension Sequence where
 // MARK: - Readable
 
 extension Readable where
-    ItemType: ValueCoding,
-    ItemType: Persistable,
-    ItemType.Coder: NSCoding,
-    ItemType.Coder.Value == ItemType {
+    ItemType: Decodable,
+    ItemType: Persistable {
 
     func inTransaction(_ transaction: Database.Connection.ReadTransaction, atIndex index: YapDB.Index) -> ItemType? {
         return transaction.readAtIndex(index)

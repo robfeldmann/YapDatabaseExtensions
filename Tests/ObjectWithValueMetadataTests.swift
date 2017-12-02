@@ -95,12 +95,12 @@ class ObjectWithValueMetadataTests: XCTestCase {
 
     func configureForReadingSingle() {
         readTransaction.object = item
-        readTransaction.metadata = metadata?.encoded
+        readTransaction.metadata = (try? metadata?.jsonObject()) ?? nil
     }
 
     func configureForReadingMultiple() {
         readTransaction.objects = items
-        readTransaction.metadatas = metadatas.map { $0?.encoded }
+        readTransaction.metadatas = metadatas.flatMap { (try? $0?.jsonObject()) ?? nil }
         readTransaction.keys = keys
     }
 
@@ -109,7 +109,7 @@ class ObjectWithValueMetadataTests: XCTestCase {
         XCTAssertFalse(writeTransaction.didWriteAtIndexes.isEmpty)
         XCTAssertEqual(writeTransaction.didWriteAtIndexes[0].0, index)
         XCTAssertEqual(writeTransaction.didWriteAtIndexes[0].1.identifier, item.identifier)
-        XCTAssertEqual(MetadataTypeUnderTest.decode(writeTransaction.didWriteAtIndexes[0].2), metadata)
+        XCTAssertEqual(try! MetadataTypeUnderTest(from: writeTransaction.didWriteAtIndexes[0].2 as Any), metadata)
     }
 
     func checkTransactionDidWriteItems(_ result: [YapItem<TypeUnderTest, MetadataTypeUnderTest>]) {
@@ -692,7 +692,7 @@ class Persistable_Write_ObjectWithValueMetadataTests: ObjectWithValueMetadataTes
         XCTAssertFalse(writeTransaction.didWriteAtIndexes.isEmpty)
         XCTAssertEqual(writeTransaction.didWriteAtIndexes[0].0, index)
         XCTAssertEqual(writeTransaction.didWriteAtIndexes[0].1.identifier, item.identifier)
-        XCTAssertEqual(MetadataTypeUnderTest.decode(writeTransaction.didWriteAtIndexes[0].2), metadata)
+        XCTAssertEqual(try! MetadataTypeUnderTest(from: writeTransaction.didWriteAtIndexes[0].2 as Any), metadata)
         XCTAssertTrue(connection.didWrite)
     }
 

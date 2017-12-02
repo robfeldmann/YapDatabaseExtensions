@@ -7,7 +7,6 @@
 //
 
 import Foundation
-import ValueCoding
 import YapDatabase
 
 // MARK: - Reading
@@ -23,10 +22,9 @@ extension ReadTransactionType {
     public func readAtIndex<
         Value>(_ index: YapDB.Index) -> Value? where
         Value: Persistable,
-        Value: ValueCoding,
-        Value.Coder: NSCoding,
-        Value.Coder.Value == Value {
-            return Value.decode(readAtIndex(index) as Any?)
+        Value: Decodable {
+            guard let jsonObject = readAtIndex(index) else { return nil }
+            return try? Value(from: jsonObject)
     }
 
     /**
@@ -40,9 +38,7 @@ extension ReadTransactionType {
         Indexes: Sequence,
         Indexes.Iterator.Element == YapDB.Index,
         Value: Persistable,
-        Value: ValueCoding,
-        Value.Coder: NSCoding,
-        Value.Coder.Value == Value {
+        Value: Decodable {
             return indexes.map(readAtIndex)
     }
 
@@ -55,9 +51,7 @@ extension ReadTransactionType {
     public func readByKey<
         Value>(_ key: String) -> Value? where
         Value: Persistable,
-        Value: ValueCoding,
-        Value.Coder: NSCoding,
-        Value.Coder.Value == Value {
+        Value: Decodable {
             return readAtIndex(Value.indexWithKey(key))
     }
 
@@ -72,9 +66,7 @@ extension ReadTransactionType {
         Keys: Sequence,
         Keys.Iterator.Element == String,
         Value: Persistable,
-        Value: ValueCoding,
-        Value.Coder: NSCoding,
-        Value.Coder.Value == Value {
+        Value: Decodable {
             return readAtIndexes(Value.indexesWithKeys(keys))
     }
 
@@ -86,9 +78,7 @@ extension ReadTransactionType {
     public func readAll<
         Value>() -> [Value?] where
         Value: Persistable,
-        Value: ValueCoding,
-        Value.Coder: NSCoding,
-        Value.Coder.Value == Value {
+        Value: Decodable {
             return readByKeys(keysInCollection(Value.collection))
     }
 }
@@ -104,9 +94,7 @@ extension ConnectionType {
     public func readAtIndex<
         Value>(_ index: YapDB.Index) -> Value? where
         Value: Persistable,
-        Value: ValueCoding,
-        Value.Coder: NSCoding,
-        Value.Coder.Value == Value {
+        Value: Decodable {
             return read { $0.readAtIndex(index) }
     }
 
@@ -121,9 +109,7 @@ extension ConnectionType {
         Indexes: Sequence,
         Indexes.Iterator.Element == YapDB.Index,
         Value: Persistable,
-        Value: ValueCoding,
-        Value.Coder: NSCoding,
-        Value.Coder.Value == Value {
+        Value: Decodable {
             return read { $0.readAtIndexes(indexes) }
     }
 
@@ -136,9 +122,7 @@ extension ConnectionType {
     public func readByKey<
         Value>(_ key: String) -> Value? where
         Value: Persistable,
-        Value: ValueCoding,
-        Value.Coder: NSCoding,
-        Value.Coder.Value == Value {
+        Value: Decodable {
             return readAtIndex(Value.indexWithKey(key))
     }
 
@@ -153,9 +137,7 @@ extension ConnectionType {
         Keys: Sequence,
         Keys.Iterator.Element == String,
         Value: Persistable,
-        Value: ValueCoding,
-        Value.Coder: NSCoding,
-        Value.Coder.Value == Value {
+        Value: Decodable {
             return readAtIndexes(Value.indexesWithKeys(keys))
     }
 
@@ -167,9 +149,7 @@ extension ConnectionType {
     public func readAll<
         Value>() -> [Value?] where
         Value: Persistable,
-        Value: ValueCoding,
-        Value.Coder: NSCoding,
-        Value.Coder.Value == Value {
+        Value: Decodable {
             return read { $0.readAll() }
     }
 }
@@ -186,10 +166,10 @@ extension WriteTransactionType {
     public func write<
         Value>(_ item: Value) -> Value where
         Value: Persistable,
-        Value: ValueCoding,
-        Value.Coder: NSCoding,
-        Value.Coder.Value == Value {
-            writeAtIndex(item.index, object: item.encoded, metadata: .none)
+        Value: Encodable {
+            if let jsonObject = try? item.jsonObject() {
+                writeAtIndex(item.index, object: jsonObject, metadata: .none)
+            }
             return item
     }
 
@@ -203,9 +183,7 @@ extension WriteTransactionType {
         Items: Sequence,
         Items.Iterator.Element == Value,
         Value: Persistable,
-        Value: ValueCoding,
-        Value.Coder: NSCoding,
-        Value.Coder.Value == Value {
+        Value: Encodable {
             return items.map(write)
     }
 }
@@ -220,9 +198,7 @@ extension ConnectionType {
     public func write<
         Value>(_ item: Value) -> Value where
         Value: Persistable,
-        Value: ValueCoding,
-        Value.Coder: NSCoding,
-        Value.Coder.Value == Value {
+        Value: Encodable {
             return write { $0.write(item) }
     }
 
@@ -236,9 +212,7 @@ extension ConnectionType {
         Items: Sequence,
         Items.Iterator.Element == Value,
         Value: Persistable,
-        Value: ValueCoding,
-        Value.Coder: NSCoding,
-        Value.Coder.Value == Value {
+        Value: Encodable {
             return write { $0.write(items) }
     }
 
@@ -252,9 +226,7 @@ extension ConnectionType {
     public func asyncWrite<
         Value>(_ item: Value, queue: DispatchQueue = DispatchQueue.main, completion: ((Value) -> Void)? = .none) where
         Value: Persistable,
-        Value: ValueCoding,
-        Value.Coder: NSCoding,
-        Value.Coder.Value == Value {
+        Value: Encodable {
             asyncWrite({ $0.write(item) }, queue: queue, completion: completion)
     }
 
@@ -270,9 +242,7 @@ extension ConnectionType {
         Items: Sequence,
         Items.Iterator.Element == Value,
         Value: Persistable,
-        Value: ValueCoding,
-        Value.Coder: NSCoding,
-        Value.Coder.Value == Value {
+        Value: Encodable {
             asyncWrite({ $0.write(items) }, queue: queue, completion: completion)
     }
 }

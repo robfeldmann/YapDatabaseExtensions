@@ -2,7 +2,6 @@
 //  Created by Daniel Thorpe on 08/04/2015.
 //
 
-import ValueCoding
 import YapDatabase
 
 /**
@@ -124,7 +123,7 @@ extension YapDB {
     /**
     A database index value type.
     */
-    public struct Index {
+    public struct Index: Codable {
 
         /// The index's collection
         public let collection: String
@@ -595,30 +594,30 @@ extension YapDB.Index: CustomStringConvertible {
     }
 }
 
-// MARK: ValueCoding
+// MARK: - Codable
 
-extension YapDB.Index: ValueCoding {
-    public typealias Coder = YapDBIndexCoder
+public extension Encodable {
+    func jsonObject() throws -> AnyObject {
+        let data = try JSONEncoder().encode(self)
+        return try JSONSerialization.jsonObject(with: data, options: []) as AnyObject
+    }
 }
 
-// MARK: Coders
-
-public final class YapDBIndexCoder: NSObject, NSCoding, CodingProtocol {
-    public let value: YapDB.Index
-
-    public init(_ v: YapDB.Index) {
-        value = v
+public extension Array where Element: Encodable {
+    func jsonObject() throws -> [AnyObject] {
+        return try self.map({
+            let data = try JSONEncoder().encode($0)
+            return try JSONSerialization.jsonObject(with: data, options: []) as AnyObject
+        })
     }
+}
 
-    public required init(coder aDecoder: NSCoder) {
-        let collection = aDecoder.decodeObject(forKey: "collection") as! String
-        let key = aDecoder.decodeObject(forKey: "key") as! String
-        value = YapDB.Index(collection: collection, key: key)
-    }
-
-    public func encode(with aCoder: NSCoder) {
-        aCoder.encode(value.collection, forKey: "collection")
-        aCoder.encode(value.key, forKey: "key")
+public extension Decodable {
+    typealias JSONObject = Any
+    init(from jsonObject: Decodable.JSONObject) throws {
+        let data = try JSONSerialization.data(withJSONObject: jsonObject, options: [])
+        let decoder = JSONDecoder()
+        self = try decoder.decode(Self.self, from: data)
     }
 }
 
@@ -634,10 +633,16 @@ public typealias ObjectMetadataPersistable = Persistable
 public typealias ValueMetadataPersistable = Persistable
 
 @available(*, unavailable, renamed: "ValueCoding")
-public typealias Saveable = ValueCoding
+public typealias Saveable = Void
 
 @available(*, unavailable, renamed: "CodingProtocol")
-public typealias CodingType = CodingProtocol
+public typealias CodingType = Void
 
 @available(*, unavailable, renamed: "CodingProtocol")
-public typealias Archiver = CodingProtocol
+public typealias Archiver = Void
+
+@available(swift, deprecated: 3.0, obsoleted: 4.0, message: "ValueCoding is deprecated as it has been rendered obsolete by Codable in Swift 4.")
+public typealias ValueCoding = Void
+
+@available(swift, deprecated: 3.0, obsoleted: 4.0, message: "ValueCoding is deprecated as it has been rendered obsolete by Codable in Swift 4.")
+public typealias CodingProtocol = Void

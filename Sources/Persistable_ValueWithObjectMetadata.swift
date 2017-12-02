@@ -7,14 +7,11 @@
 //
 
 import Foundation
-import ValueCoding
 
 // MARK: - Persistable
 
 extension Persistable where
-    Self: ValueCoding,
-    Self.Coder: NSCoding,
-    Self.Coder.Value == Self {
+    Self: Encodable {
 
     // Writing
 
@@ -73,9 +70,7 @@ extension Persistable where
 
 extension Sequence where
     Iterator.Element: Persistable,
-    Iterator.Element: ValueCoding,
-    Iterator.Element.Coder: NSCoding,
-    Iterator.Element.Coder.Value == Iterator.Element {
+    Iterator.Element: Encodable {
 
     /**
      Zips the receiver with metadata into an array of YapItem.
@@ -153,10 +148,8 @@ extension Sequence where
 // MARK: - Readable
 
 extension Readable where
-    ItemType: ValueCoding,
-    ItemType: Persistable,
-    ItemType.Coder: NSCoding,
-    ItemType.Coder.Value == ItemType {
+    ItemType: Decodable,
+    ItemType: Persistable {
 
     func withMetadataInTransaction<Metadata: NSCoding>(_ transaction: Database.Connection.ReadTransaction, atIndex index: YapDB.Index) -> YapItem<ItemType, Metadata>? {
         return transaction.readWithMetadataAtIndex(index)

@@ -7,7 +7,6 @@
 //
 
 import Foundation
-import ValueCoding
 import YapDatabase
 import YapDatabaseExtensions
 
@@ -16,14 +15,50 @@ public enum Barcode: Equatable {
     case qrCode(String)
 }
 
-public struct Product: Identifiable, Equatable {
+extension Barcode: Codable {
+    enum CodingError: Error {
+        case decoding(String)
+    }
+    
+    private enum CodingKeys: String, CodingKey {
+        case upca
+        case qrCode
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case let .upca(numberSystem, manufacturer, product, check):
+            try container.encode([numberSystem, manufacturer, product, check], forKey: .upca)
+            
+        case let .qrCode(productCode):
+            try container.encode(productCode, forKey: .qrCode)
+            
+        }
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        if let codes = try? container.decode(Array<Int>.self, forKey: .upca), codes.count == 4 {
+            self = .upca(codes[0], codes[1], codes[2], codes[3])
+            return
+        }
+        if let code = try? container.decode(String.self, forKey: .qrCode) {
+            self = .qrCode(code)
+            return
+        }
+        throw CodingError.decoding("Decoding Error: \(dump(container))")
+    }
+}
 
-    public struct Category: Identifiable {
+public struct Product: Identifiable, Equatable, Codable {
+
+    public struct Category: Identifiable, Codable {
         public let identifier: Int
         let name: String
     }
 
-    public struct Metadata: Equatable {
+    public struct Metadata: Equatable, Codable {
         let categoryIdentifier: Int
 
         public init(categoryIdentifier: Int) {
@@ -42,7 +77,7 @@ public struct Product: Identifiable, Equatable {
     }
 }
 
-public struct Inventory: Identifiable, Equatable {
+public struct Inventory: Identifiable, Equatable, Codable {
     let product: Product
 
     public var identifier: Identifier {
@@ -77,7 +112,7 @@ public class Employee: NamedEntity {
 }
 
 public class Manager: NamedEntity {
-    public struct Metadata: Equatable {
+    public struct Metadata: Equatable, Codable {
         public let numberOfDirectReports: Int
     }
 }
@@ -214,195 +249,24 @@ extension Manager: Persistable {
     }
 }
 
-
-// MARK: - ValueCoding
-
-extension Barcode: ValueCoding {
-    public typealias Coder = BarcodeCoder
-
-    enum Kind: Int { case upca = 1, qrCode }
-
-    var kind: Kind {
-        switch self {
-        case .upca(_): return Kind.upca
-        case .qrCode(_): return Kind.qrCode
-        }
-    }
-}
-
-extension Product.Category: ValueCoding {
-    public typealias Coder = ProductCategoryCoder
-}
-
-extension Product.Metadata: ValueCoding {
-    public typealias Coder = ProductMetadataCoder
-}
-
-extension Product: ValueCoding {
-    public typealias Coder = ProductCoder
-}
-
-extension Inventory: ValueCoding {
-    public typealias Coder = InventoryCoder
-}
-
-extension Manager.Metadata: ValueCoding {
-    public typealias Coder = ManagerMetadataCoder
-}
-
-
-// MARK: - Coders
-
-public class BarcodeCoder: NSObject, NSCoding, CodingProtocol {
-    public let value: Barcode
-
-    public required init(_ v: Barcode) {
-        value = v
-    }
-
-    public required init?(coder aDecoder: NSCoder) {
-        if let kind = Barcode.Kind(rawValue: aDecoder.decodeInteger(forKey: "kind")) {
-            switch kind {
-            case .upca:
-                let numberSystem = aDecoder.decodeInteger(forKey: "numberSystem")
-                let manufacturer = aDecoder.decodeInteger(forKey: "manufacturer")
-                let product = aDecoder.decodeInteger(forKey: "product")
-                let check = aDecoder.decodeInteger(forKey: "check")
-                value = .upca(numberSystem, manufacturer, product, check)
-            case .qrCode:
-                let code = aDecoder.decodeObject(forKey: "code") as! String
-                value = .qrCode(code)
-            }
-        }
-        else {
-            preconditionFailure("Barcode.Kind not correctly encoded.")
-        }
-    }
-
-    public func encode(with aCoder: NSCoder) {
-        aCoder.encode(value.kind.rawValue, forKey: "kind")
-        switch value {
-        case let .upca(numberSystem, manufacturer, product, check):
-            aCoder.encode(numberSystem, forKey: "numberSystem")
-            aCoder.encode(manufacturer, forKey: "manufacturer")
-            aCoder.encode(product, forKey: "product")
-            aCoder.encode(check, forKey: "check")
-        case let .qrCode(code):
-            aCoder.encode(code, forKey: "code")
-        }
-    }
-}
-
-public class ProductCategoryCoder: NSObject, NSCoding, CodingProtocol {
-    public let value: Product.Category
-
-    public required init(_ v: Product.Category) {
-        value = v
-    }
-
-    public required init?(coder aDecoder: NSCoder) {
-        let identifier = aDecoder.decodeInteger(forKey: "identifier")
-        let name = aDecoder.decodeObject(forKey: "name") as? String
-        value = Product.Category(identifier: identifier, name: name!)
-    }
-
-    public func encode(with aCoder: NSCoder) {
-        aCoder.encode(value.identifier, forKey: "identifier")
-        aCoder.encode(value.name, forKey: "name")
-    }
-}
-
-public class ProductMetadataCoder: NSObject, NSCoding, CodingProtocol {
-    public let value: Product.Metadata
-
-    public required init(_ v: Product.Metadata) {
-        value = v
-    }
-
-    public required init?(coder aDecoder: NSCoder) {
-        let categoryIdentifier = aDecoder.decodeInteger(forKey: "categoryIdentifier")
-        value = Product.Metadata(categoryIdentifier: categoryIdentifier)
-    }
-
-    public func encode(with aCoder: NSCoder) {
-        aCoder.encode(value.categoryIdentifier, forKey: "categoryIdentifier")
-    }
-}
-
-public class ProductCoder: NSObject, NSCoding, CodingProtocol {
-    public let value: Product
-
-    public required init(_ v: Product) {
-        value = v
-    }
-
-    public required init?(coder aDecoder: NSCoder) {
-        let identifier = aDecoder.decodeObject(forKey: "identifier") as! String
-        let name = aDecoder.decodeObject(forKey: "name") as! String
-        let barcode = Barcode.decode(aDecoder.decodeObject(forKey: "barcode"))
-        value = Product(identifier: identifier, name: name, barcode: barcode!)
-    }
-
-    public func encode(with aCoder: NSCoder) {
-        aCoder.encode(value.identifier, forKey: "identifier")
-        aCoder.encode(value.name, forKey: "name")
-        aCoder.encode(value.barcode.encoded, forKey: "barcode")
-    }
-}
-
-public class InventoryCoder: NSObject, NSCoding, CodingProtocol {
-    public let value: Inventory
-
-    public required init(_ v: Inventory) {
-        value = v
-    }
-
-    public required init?(coder aDecoder: NSCoder) {
-        let product = Product.decode(aDecoder.decodeObject(forKey: "product"))
-        value = Inventory(product: product!)
-    }
-
-    public func encode(with aCoder: NSCoder) {
-        aCoder.encode(value.product.encoded, forKey: "product")
-    }
-}
-
-
-public class ManagerMetadataCoder: NSObject, NSCoding, CodingProtocol {
-    public let value: Manager.Metadata
-
-    public required init(_ v: Manager.Metadata) {
-        value = v
-    }
-
-    public required init?(coder aDecoder: NSCoder) {
-        let numberOfDirectReports = aDecoder.decodeInteger(forKey: "numberOfDirectReports")
-        value = Manager.Metadata(numberOfDirectReports: numberOfDirectReports)
-    }
-
-    public func encode(with aCoder: NSCoder) {
-        aCoder.encode(value.numberOfDirectReports, forKey: "numberOfDirectReports")
-    }
-}
-
 // MARK: - Database Views
 
 public func products() -> YapDB.Fetch {
 
     let grouping: YapDB.View.Grouping = .byMetadata({ (_, collection, key, metadata) -> String! in
-        if collection == Product.collection {
-            if let metadata = Product.Metadata.decode(metadata) {
-                return "category: \(metadata.categoryIdentifier)"
-            }
+        if collection == Product.collection,
+           let metadata = metadata,
+           let productMetadata = try? Product.Metadata(from: metadata) {
+            return "category: \(productMetadata.categoryIdentifier)"
         }
         return nil
     })
 
     let sorting: YapDB.View.Sorting = .byObject({ (_, group, collection1, key1, object1, collection2, key2, object2) -> ComparisonResult in
-        if let product1 = Product.decode(object1) {
-            if let product2 = Product.decode(object2) {
-                return product1.name.caseInsensitiveCompare(product2.name)
-            }
+        
+        if let product1 = try? Product(from: object1),
+           let product2 = try? Product(from: object2) {
+            return product1.name.caseInsensitiveCompare(product2.name)
         }
         return .orderedSame
     })

@@ -7,7 +7,6 @@
 //
 
 import Foundation
-import ValueCoding
 import YapDatabase
 
 // MARK: - Reading
@@ -22,10 +21,9 @@ extension ReadTransactionType {
     */
     public func readMetadataAtIndex<
         MetadataType>(_ index: YapDB.Index) -> MetadataType? where
-        MetadataType: ValueCoding,
-        MetadataType.Coder: NSCoding,
-        MetadataType.Coder.Value == MetadataType {
-            return MetadataType.decode(readMetadataAtIndex(index) as Any?)
+        MetadataType: Decodable {
+            guard let jsonMetadata = readMetadataAtIndex(index) else { return nil }
+            return try? MetadataType(from: jsonMetadata)
     }
 
     /**
@@ -38,9 +36,7 @@ extension ReadTransactionType {
         Indexes, MetadataType>(_ indexes: Indexes) -> [MetadataType?] where
         Indexes: Sequence,
         Indexes.Iterator.Element == YapDB.Index,
-        MetadataType: ValueCoding,
-        MetadataType.Coder: NSCoding,
-        MetadataType.Coder.Value == MetadataType {
+        MetadataType: Decodable {
             return indexes.map(readMetadataAtIndex)
     }
 }
@@ -55,9 +51,7 @@ extension ConnectionType {
     */
     public func readMetadataAtIndex<
         MetadataType>(_ index: YapDB.Index) -> MetadataType? where
-        MetadataType: ValueCoding,
-        MetadataType.Coder: NSCoding,
-        MetadataType.Coder.Value == MetadataType {
+        MetadataType: Decodable {
             return read { $0.readMetadataAtIndex(index) }
     }
 
@@ -71,9 +65,7 @@ extension ConnectionType {
         Indexes, MetadataType>(_ indexes: Indexes) -> [MetadataType?] where
         Indexes: Sequence,
         Indexes.Iterator.Element == YapDB.Index,
-        MetadataType: ValueCoding,
-        MetadataType.Coder: NSCoding,
-        MetadataType.Coder.Value == MetadataType {
+        MetadataType: Decodable {
             return read { $0.readMetadataAtIndexes(indexes) }
     }
 }

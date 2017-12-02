@@ -110,13 +110,13 @@ class ValueWithValueMetadataTests: XCTestCase {
     }
 
     func configureForReadingSingle() {
-        readTransaction.object = item.encoded
-        readTransaction.metadata = metadata?.encoded
+        readTransaction.object = try? item.jsonObject()
+        readTransaction.metadata = (try? metadata?.jsonObject()) ?? nil
     }
 
     func configureForReadingMultiple() {
-        readTransaction.objects = items.encoded
-        readTransaction.metadatas = metadatas.map { $0?.encoded }
+        readTransaction.objects = (try? items.jsonObject()) ?? []
+        readTransaction.metadatas = metadatas.flatMap { try? $0?.jsonObject() }
         readTransaction.keys = keys
     }
 
@@ -124,8 +124,8 @@ class ValueWithValueMetadataTests: XCTestCase {
         XCTAssertEqual(result.value.identifier, item.identifier)
         XCTAssertFalse(writeTransaction.didWriteAtIndexes.isEmpty)
         XCTAssertEqual(writeTransaction.didWriteAtIndexes[0].0, index)
-        XCTAssertEqual(TypeUnderTest.decode(writeTransaction.didWriteAtIndexes[0].1)!, item)
-        XCTAssertEqual(MetadataTypeUnderTest.decode(writeTransaction.didWriteAtIndexes[0].2), metadata)
+        XCTAssertEqual(try! TypeUnderTest(from: writeTransaction.didWriteAtIndexes[0].1), item)
+        XCTAssertEqual(try! MetadataTypeUnderTest(from: writeTransaction.didWriteAtIndexes[0].2 as Any), metadata)
     }
 
     func checkTransactionDidWriteItems(_ result: [YapItem<TypeUnderTest, MetadataTypeUnderTest>]) {
@@ -821,8 +821,8 @@ class Persistable_Write_ValueWithValueMetadataTests: ValueWithValueMetadataTests
         waitForExpectations(timeout: 3.0, handler: nil)
         XCTAssertFalse(writeTransaction.didWriteAtIndexes.isEmpty)
         XCTAssertEqual(writeTransaction.didWriteAtIndexes[0].0, index)
-        XCTAssertEqual(TypeUnderTest.decode(writeTransaction.didWriteAtIndexes[0].1)!, item)
-        XCTAssertEqual(MetadataTypeUnderTest.decode(writeTransaction.didWriteAtIndexes[0].2), metadata)
+        XCTAssertEqual(try! TypeUnderTest(from: writeTransaction.didWriteAtIndexes[0].1), item)
+        XCTAssertEqual(try! MetadataTypeUnderTest(from: writeTransaction.didWriteAtIndexes[0].2 as Any), metadata)
         XCTAssertTrue(connection.didWrite)
     }
 

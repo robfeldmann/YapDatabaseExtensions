@@ -7,7 +7,6 @@
 //
 
 import Foundation
-import ValueCoding
 
 // MARK: - Readable
 
@@ -16,25 +15,19 @@ extension Readable where
 
     func metadataInTransaction<
         Metadata>(_ transaction: Database.Connection.ReadTransaction, atIndex index: YapDB.Index) -> Metadata? where
-        Metadata: ValueCoding,
-        Metadata.Coder: NSCoding,
-        Metadata.Coder.Value == Metadata {
+        Metadata: Decodable {
         return transaction.readMetadataAtIndex(index)
     }
 
     func metadataAtIndexInTransaction<
         Metadata>(_ index: YapDB.Index) -> (Database.Connection.ReadTransaction) -> Metadata? where
-        Metadata: ValueCoding,
-        Metadata.Coder: NSCoding,
-        Metadata.Coder.Value == Metadata {
+        Metadata: Decodable {
         return { self.metadataInTransaction($0, atIndex: index) }
     }
 
     func metadataInTransactionAtIndex<
         Metadata>(_ transaction: Database.Connection.ReadTransaction) -> (YapDB.Index) -> Metadata? where
-        Metadata: ValueCoding,
-        Metadata.Coder: NSCoding,
-        Metadata.Coder.Value == Metadata {
+        Metadata: Decodable {
         return { self.metadataInTransaction(transaction, atIndex: $0) }
     }
 
@@ -42,9 +35,7 @@ extension Readable where
         Indexes, Metadata>(_ indexes: Indexes) -> (Database.Connection.ReadTransaction) -> [Metadata?] where
         Indexes: Sequence,
         Indexes.Iterator.Element == YapDB.Index,
-        Metadata: ValueCoding,
-        Metadata.Coder: NSCoding,
-        Metadata.Coder.Value == Metadata {
+        Metadata: Decodable {
             return { indexes.map(self.metadataInTransactionAtIndex($0)) }
     }
 
@@ -56,9 +47,7 @@ extension Readable where
     */
     public func metadataAtIndex<
         Metadata>(_ index: YapDB.Index) -> Metadata? where
-        Metadata: ValueCoding,
-        Metadata.Coder: NSCoding,
-        Metadata.Coder.Value == Metadata {
+        Metadata: Decodable {
         return sync(metadataAtIndexInTransaction(index))
     }
 
@@ -72,9 +61,7 @@ extension Readable where
         Indexes, Metadata>(_ indexes: Indexes) -> [Metadata?] where
         Indexes: Sequence,
         Indexes.Iterator.Element == YapDB.Index,
-        Metadata: ValueCoding,
-        Metadata.Coder: NSCoding,
-        Metadata.Coder.Value == Metadata {
+        Metadata: Decodable {
             return sync(metadataAtIndexesInTransaction(indexes))
     }
 }

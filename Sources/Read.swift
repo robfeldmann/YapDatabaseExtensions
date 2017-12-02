@@ -4,7 +4,6 @@
 //
 
 import Foundation
-import ValueCoding
 import YapDatabase
 
 // MARK: - Readable
@@ -68,7 +67,7 @@ extension Persistable {
     /**
     Returns a type suitable for *reading* from the transaction. The available
     functions will depend on your own types correctly implementing Persistable,
-    MetadataPersistable and ValueCoding.
+    MetadataPersistable and Codable.
     
     For example, given the key for a `Person` type, and you are in a read
     transaction block, the following would read the object for you.
@@ -90,7 +89,7 @@ extension Persistable {
     /**
     Returns a type suitable for Reading from a database connection. The available
     functions will depend on your own types correctly implementing Persistable,
-    MetadataPersistable and ValueCoding.
+    MetadataPersistable and Codable.
 
     For example, given the key for a `Person` type, and you have a database 
     connection.
