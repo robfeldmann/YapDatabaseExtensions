@@ -7,7 +7,6 @@
 //
 
 import XCTest
-import ValueCoding
 import YapDatabase
 @testable import YapDatabaseExtensions
 
@@ -204,7 +203,7 @@ class YapDatabaseConnectionTests: ReadWriteBaseTests {
     }
 }
 
-class ValueCodingTests: XCTestCase {
+class CodableTests: XCTestCase {
 
     var item: Product!
     var metadata: Product.Metadata!
