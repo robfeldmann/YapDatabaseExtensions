@@ -320,7 +320,6 @@
 			files = (
 			);
 			inputPaths = (
-				ValueCoding,
 				YapDatabase,
 				CocoaLumberjack,
 			);

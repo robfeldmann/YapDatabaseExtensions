@@ -22,7 +22,6 @@ Pod::Spec.new do |s|
   s.ios.deployment_target = '9.0'
   s.osx.deployment_target = '10.11'
 
-  s.dependency 'ValueCoding', '~> 3.0'
   s.dependency 'YapDatabase', '~> 3.0'
   
   s.subspec 'Core' do |ss|
