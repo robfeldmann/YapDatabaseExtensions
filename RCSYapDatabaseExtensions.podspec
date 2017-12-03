@@ -5,7 +5,7 @@ Pod::Spec.new do |s|
   s.description       = <<-DESC
   
   Defines APIs to conveniently read, write and remove objects and values
-  to or from YapDatabse. See ValueCoding for value type support.
+  to or from YapDatabse.
   
   Fork of danthorpe's YapDatabaseExtensions with Swift 3 support and
   metadata separated from objects.

@@ -1,3 +1,8 @@
+# 4.0.0
+1. Updated for Swift 4.0
+2. Removed deprecated [ValueCoding](https://github.com/danthorpe/ValueCoding) dependency
+3. Pod name changed to RLFYapDatabaseExtensions
+
 # 3.0.0
 1. Separated Metadata from Objects (removed `metadata` from `Persistable`)
 2. Updated for Swift 3.0

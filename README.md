@@ -7,7 +7,7 @@
 
 # RCSYapDatabaseExtensions
 
-**This is a fork of Dan Thorpe's YapDatabaseExtensions. It was created as my client needed a Swift 3 version immediately, but it also has several other enhancements. Please see CHANGELOG.md for details.**
+**This is a fork of Daniel Thorpe's YapDatabaseExtensions, which has not been updated since Swift 2. This includes Jim Roepcke's Swift 3 update for a client, which also included several other enhancements. This version has been updated for Swift 4 and uses Codable instead of the now deprecated ValueCoding dependency. Please see CHANGELOG.md for details.**
 
 Read Dan Thorpe's introductory blog post about [YapDatabase & YapDatabaseExtensions](http://danthorpe.me/posts/yap-database.html), and a follow up on [YapDatabaseExtensions 2](http://danthorpe.me/posts/yapdatabaseextensions-two--the-swiftening.html).
 
@@ -16,8 +16,39 @@ RCSYapDatabaseExtensions is a suite of convenience APIs for working with [YapDat
 ## Motivation
 While YapDatabase is great, it’s lacking some out of the box convenience and Swift support. In particular, YapDatabase works heavily with `AnyObject` types, which is fine for Objective-C but means no type fidelity with Swift. Similarly saving value types like structs or enums in YapDatabase is problematic. This framework has evolved through 2015 to tackle these issues.
 
-## Value Types
-The support for encoding and decoding value types, previously the `Saveable` and `Archiver` protocols, has been renamed and moved to their own project. [ValueCoding](https://github.com/danthorpe/ValueCoding) is a dependency of this framework (along with YapDatabase itself). See its [README](https://github.com/danthorpe/ValueCoding/blob/development/README.md) for more info. However, essentially, if you used this project before version 2.1, you’ll need to rename some types - and Xcode should present Fix It options. `Saveable` is now `ValueCoding`, its nested type, previously `ArchiverType` is now `Coder`, and this type must conform to a protocol, previously `Archiver`, now `CodingProtocol`. See how they were all mixed up? Now fixed.
+## Value Types (Codable)
+Prior to Swift 4, support for encoding and decoding value types was provided by a separate, now deprecated, [ValueCoding](https://github.com/danthorpe/ValueCoding) dependency.
+
+Swift 4's new `Codable`` API is supported out of the box with just the following extensions:
+
+```swift
+public extension Encodable {
+    func jsonObject() throws -> AnyObject {
+        let data = try JSONEncoder().encode(self)
+        return try JSONSerialization.jsonObject(with: data, options: []) as AnyObject
+    }
+}
+
+public extension Array where Element: Encodable {
+    func jsonObject() throws -> [AnyObject] {
+        return try self.map({
+            let data = try JSONEncoder().encode($0)
+            return try JSONSerialization.jsonObject(with: data, options: []) as AnyObject
+        })
+    }
+}
+
+public extension Decodable {
+    typealias JSONObject = Any
+    init(from jsonObject: Decodable.JSONObject) throws {
+        let data = try JSONSerialization.data(withJSONObject: jsonObject, options: [])
+        let decoder = JSONDecoder()
+        self = try decoder.decode(Self.self, from: data)
+    }
+}
+```
+
+These extensions allow for converting a `Codable` value type to a Foundation `jsonObject` that can be archived with YapDatabase's default serializer and deserializers which use `NSCoding`. 
 
 ## `Persistable`
 This protocol expresses what is required to support reading from and writing to YapDatabase. Objects are referenced inside the database with a key (a `String`) inside a collection (also a `String`).
@@ -42,25 +73,23 @@ There is also a `YapDB.Index` struct which composes the key and collection into 
 ### Metadata
 YapDatabase supports storing metadata alongside the primary object. RCSYapDatabaseExtensions supports optional reading and writing of metadata alongside a `Persistable` type.
 
-Your custom metadata types must conform to either `NSCoding` or `ValueCoding`.
+Your custom metadata types must conform to either `NSCoding` or `Codable`.
 
 **In this fork of YapDatabaseExtensions, metadata has been removed from `Persistable`, and all reads and writes of metadata must be done explicitly.**
 
 Additionally, since the `MetadataType` is decoupled from the `Persistable` type, a single `Persistable` type can use many different types of metadata, as appropriate. When you want to read or write a value and it's metadata together, you use the "withMetadata" variants of the API, which accept and return `YapItem<Value, Metadata>` values. `YapItem` is basically a slightly nicer wrapper than a Swift tuple, which can be extended, unlike anonymous tuple types.
 
 ## “Correct” Type Patterns
-Because the generic protocols, `ValueCoding` and `CodingType` have self-reflective properties, they must be correctly implemented for the APIs to be available. This means that the equality `ValueCoding.Coder.ValueType == Self` must be met. The APIs are all composed with this represented in their generic where clauses. This means that if your `ValueCoding` type is not the `ValueType` of its `Coder`, your code will not compile.
-
-Therefore, there are six valid `Persistable` type patterns as described in the table below:
+Because of generic protocols, the APIs are all composed with this represented in their generic where clauses. There are six valid `Persistable` type patterns as described in the table below:
 
 Item encoding | Metadata encoding | Pattern
 --------------|-------------------|------------------
 `NSCoding`    | No Metadata       | Object
 `NSCoding`    | `NSCoding`        | ObjectWithObjectMetadata
-`NSCoding`    | `ValueCoding`     | ObjectWithValueMetadata
-`ValueCoding` | No Metadata       | Value
-`ValueCoding` | `NSCoding`        | ValueWithObjectMetadata
-`ValueCoding` | `ValueCoding`     | ValueWithValueMetadata
+`NSCoding`    | `Codable`         | ObjectWithValueMetadata
+`Codable`     | No Metadata       | Value
+`Codable`     | `NSCoding`        | ValueWithObjectMetadata
+`Codable`     | `Codable`         | ValueWithValueMetadata
 
 ## Extension APIs
 
@@ -227,6 +256,7 @@ To start working in this repository’s `YapDatabaseExtensions.xcodeproj`, you�
 
 Daniel Thorpe, [@danthorpe](https://twitter.com/danthorpe)
 Jim Roepcke, [@JimRoepcke](https://twitter.com/JimRoepcke)
+Rob Feldmann, [@robfeldmann](https://twitter.com/robfeldmann)
 
 ## License
 
